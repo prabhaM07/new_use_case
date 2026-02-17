@@ -3,6 +3,7 @@ from fastapi import HTTPException
 from sqlalchemy import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from auth.hashing import get_password_hash
+from utils import to_uuid
 from models.refresh_token import RefreshToken
 from repositories.common_commit import commit_transaction
 from repositories.generic_crud import get_instance_by_any, insert_instance
@@ -41,7 +42,7 @@ async def get_user(identifier : str , db : AsyncSession):
 
 async def is_revoked(jti: UUID ,db : AsyncSession):
 
-    refresh_token = await get_instance_by_any(model = RefreshToken , db = db , **{"token_id" :jti})
+    refresh_token = await get_instance_by_any(model = RefreshToken , db = db , data={"token_id" :jti})
 
     # Token not found → treat as revoked
     if not refresh_token:
@@ -61,12 +62,13 @@ async def is_revoked(jti: UUID ,db : AsyncSession):
     return False
     
 
-async def make_it_revoked(db : AsyncSession,jti: UUID):
+async def make_it_revoked(db : AsyncSession,jti: str):
 
+    uuid_jti = to_uuid(jti)
     refresh_token = await get_instance_by_any(
         model = RefreshToken,
         db = db,
-        data = {"token_id": jti}
+        data = {"token_id": uuid_jti}
     )
 
     print(refresh_token)
@@ -84,8 +86,10 @@ async def make_it_revoked(db : AsyncSession,jti: UUID):
 
     await commit_transaction(db=db)
 
-async def insert_refresh_token(db : AsyncSession,jti : UUID):
+async def insert_refresh_token(db : AsyncSession,jti : str):
+
+    uuid_jti = to_uuid(jti)
     
-    await insert_instance(model = RefreshToken , db=db , data = {"token_id" :jti})
-    await commit_transaction(db=db)
+    await insert_instance(model = RefreshToken , db=db , **{"token_id" :uuid_jti})
+    
     return True

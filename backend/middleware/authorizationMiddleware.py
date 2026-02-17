@@ -13,15 +13,17 @@ class AuthorizationMiddleware(BaseHTTPMiddleware):
             "/auth/refresh"
         ]
 
-        if request.url.path in public_paths:
+        if request.url.path in public_paths or request.method == 'OPTIONS':
             return await call_next(request)
         
         try :
 
+            
             credential = request.headers.get('Authorization')
             print(credential)
+
             if credential is None:
-                raise HTTPException(detail="Bearer authorization required", status_code=401)
+                raise HTTPException(detail="Bearer authorization required", status_code=400)
 
             scheme, _, token = credential.partition(" ")
 
@@ -29,6 +31,7 @@ class AuthorizationMiddleware(BaseHTTPMiddleware):
                 raise HTTPException(status_code=403, detail = "Invalid or expired token.")
             
             access_payload = await verify_access_token(token)
+            print(access_payload)
 
             if access_payload is None:
                 raise HTTPException(status_code=403, detail="Invalid or expired token.")
@@ -38,7 +41,7 @@ class AuthorizationMiddleware(BaseHTTPMiddleware):
         except HTTPException as e:
             return JSONResponse(status_code=e.status_code, content={"detail-123": e.detail})
         except Exception as e:
-            return JSONResponse(status_code=400 , content={"detail-456": str(e)})
+            return JSONResponse(status_code=401 , content={"detail-456": str(e)})
 
 
 
