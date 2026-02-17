@@ -4,7 +4,7 @@ from datetime import datetime , timedelta
 from config import settings
 import uuid
 
-def create_access_token(payload : dict) -> dict:
+async def create_access_token(payload : dict) -> dict:
 
     to_encode = payload.copy()
     expire = datetime.now() +  timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -13,7 +13,7 @@ def create_access_token(payload : dict) -> dict:
     encoded_jwt = jwt.encode(to_encode, settings.ACCESS_SECRET_KEY , algorithm= settings.ALGORITHM)
     return encoded_jwt,jti
 
-def create_refresh_token(payload : dict) -> dict:
+async def create_refresh_token(payload : dict) -> dict:
 
     to_encode = payload.copy()
     expire = datetime.now() +  timedelta(minutes=settings.REFRESH_TOKEN_EXPIRE_DAYS)
@@ -23,7 +23,7 @@ def create_refresh_token(payload : dict) -> dict:
     return encoded_jwt,jti
 
 
-def verify_access_token(token: str) -> dict:
+async def verify_access_token(token: str) -> dict:
     try:
         payload = jwt.decode(token, settings.ACCESS_SECRET_KEY, algorithms=[settings.ALGORITHM])
         
@@ -33,7 +33,7 @@ def verify_access_token(token: str) -> dict:
     except JWTError:
         raise
 
-def verify_refresh_token(token: str) -> dict:
+async def verify_refresh_token(token: str) -> dict:
     try:
         payload = jwt.decode(token, settings.REFRESH_SECRET_KEY, algorithms=[settings.ALGORITHM])
         

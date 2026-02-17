@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException
 from sqlalchemy.exc import IntegrityError
 from schema import UserCreate,UserLogin
-from services.user import create_user, get_user, insert_refresh_token, is_revoked
+from services.user import make_it_revoked, create_user, get_user, insert_refresh_token, is_revoked
 
 router = APIRouter(prefix = "/auth")
 
@@ -56,8 +56,8 @@ async def login_user(request: Request,response:Response,user_data : UserLogin,db
             "email": user.email
         }
         
-        access_data = create_access_token(payload=payload)
-        refresh_data = create_refresh_token(payload=payload)
+        access_data = await create_access_token(payload=payload)
+        refresh_data = await create_refresh_token(payload=payload)
         
         access_token = access_data[0]
         refresh_token = refresh_data[0]
@@ -65,18 +65,42 @@ async def login_user(request: Request,response:Response,user_data : UserLogin,db
 
         await insert_refresh_token(db, refresh_token_id)
 
-        response.set_cookie(key="access_token", value=access_token, httponly=True, samesite="lax",secure=False,max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES) 
-        response.set_cookie(key="refresh_token", value=refresh_token, httponly=True, samesite="lax",secure=False,max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS) 
+        response.set_cookie(key="access_token", value=access_token, httponly=True, samesite="lax",secure=False,max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60) 
+        response.set_cookie(key="refresh_token", value=refresh_token, httponly=True, samesite="lax",secure=False,max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 86000) 
 
         return {"message": "Authentication Successfull!!!","access_token": access_token}
     
     except Exception as e:
         raise HTTPException(status_code=400, detail={"msg": "unexpected error occured", "detail": str(e)})
 
-@router.post("/logout")
+@router.get("/logout")
 async def logout(request: Request,response:Response,db: AsyncSession =  Depends(get_db)):
-    pass
-       
+    try:
+        refresh_token = request.cookies.get("refresh_token")
+        print(refresh_token)
+        if not refresh_token:
+            raise HTTPException(status_code=400 , detail = "Refres Token missing")
+        
+
+        payload = await verify_refresh_token(refresh_token)
+
+        if payload is None:
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid or expired refresh token"
+            )
+        jti = payload.get("jti")
+        print(payload)
+
+        await make_it_revoked(db=db , jti=jti)
+
+        response.delete_cookie("refresh_token")
+        response.delete_cookie("access_token")
+        
+        return {"message": "Logout successful"}
+    
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid token")
 
 @router.post("/refresh")
 async def refresh_token(request: Request,response:Response, db: AsyncSession = Depends(get_db)):

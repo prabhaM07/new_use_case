@@ -9,7 +9,8 @@ class AuthorizationMiddleware(BaseHTTPMiddleware):
         
         public_paths = [
             "/", 
-            "/users/login"
+            "/auth/login",
+            "/auth/refresh"
         ]
 
         if request.url.path in public_paths:
@@ -18,16 +19,16 @@ class AuthorizationMiddleware(BaseHTTPMiddleware):
         try :
 
             credential = request.headers.get('Authorization')
-
+            print(credential)
             if credential is None:
                 raise HTTPException(detail="Bearer authorization required", status_code=401)
 
-            credential = credential.split(' ')
+            scheme, _, token = credential.partition(" ")
 
-            if credential[0] != 'Bearer':
+            if scheme.lower()  != 'bearer':
                 raise HTTPException(status_code=403, detail = "Invalid or expired token.")
             
-            access_payload = verify_access_token(credential[1])
+            access_payload = await verify_access_token(token)
 
             if access_payload is None:
                 raise HTTPException(status_code=403, detail="Invalid or expired token.")
