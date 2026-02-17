@@ -72,7 +72,7 @@ async def Bulk_update_instance(
     try:
         stmt = update(model)
 
-        for key,value in filter.items():
+        for key, value in filter.items():
             stmt = stmt.where(getattr(model,key,value))
 
         stmt = stmt.values(**data)

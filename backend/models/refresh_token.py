@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import Boolean, Column,Integer,String, DateTime , func
 from sqlalchemy.dialects.postgresql import UUID
 from db import Base
-import uuid7
+import uuid
 
 def refresh_expiry():
     return datetime.now(timezone.utc) + timedelta(days=7)
@@ -15,7 +15,7 @@ class RefreshToken(Base):
         UUID(as_uuid=True),
         unique=True,
         nullable=False,
-        default=uuid7.uuid7
+        default=uuid.uuid4()
     )
     expire_at = Column(
         DateTime(timezone=True),

@@ -9,7 +9,7 @@ from sqlalchemy.exc import IntegrityError
 from schema import UserCreate,UserLogin
 from services.user import create_user, get_user, insert_refresh_token, is_revoked
 
-router = APIRouter(prefix = "/users")
+router = APIRouter(prefix = "/auth")
 
 @router.post("/register")
 async def register_user(user_data : UserCreate, db : AsyncSession = Depends(get_db)):
@@ -36,7 +36,7 @@ async def login_user(request: Request,response:Response,user_data : UserLogin,db
     try :
         identifier = user_data.identifier
         password = user_data.password
-        
+
         user = await get_user(identifier, db)
 
         if not user:
@@ -51,29 +51,32 @@ async def login_user(request: Request,response:Response,user_data : UserLogin,db
                 detail="Invalid credentials password not mached"
             )
 
-        user = user.model_dump()
-        payload = {}
-        payload["id"] = user["id"]
-        payload["email"] = user["email"]    
+        payload = {
+            "id": user.id,
+            "email": user.email
+        }
         
         access_data = create_access_token(payload=payload)
         refresh_data = create_refresh_token(payload=payload)
         
-        access_token = access_data["token"]
-        refresh_data = refresh_data["token"]
-        refresh_token_id = refresh_data["token_id"]
+        access_token = access_data[0]
+        refresh_token = refresh_data[0]
+        refresh_token_id = refresh_data[1]
 
         await insert_refresh_token(db, refresh_token_id)
 
-        response.set_cookie(key="access_token", value=access_token, httponly=True, samesite="lax",secure=True,max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES) 
-        response.set_cookie(key="refresh_token", value=refresh_data, httponly=True, samesite="lax",secure=True,max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS) 
+        response.set_cookie(key="access_token", value=access_token, httponly=True, samesite="lax",secure=False,max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES) 
+        response.set_cookie(key="refresh_token", value=refresh_token, httponly=True, samesite="lax",secure=False,max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS) 
 
         return {"message": "Authentication Successfull!!!","access_token": access_token}
     
     except Exception as e:
         raise HTTPException(status_code=400, detail={"msg": "unexpected error occured", "detail": str(e)})
 
-   
+@router.post("/logout")
+async def logout(request: Request,response:Response,db: AsyncSession =  Depends(get_db)):
+    pass
+       
 
 @router.post("/refresh")
 async def refresh_token(request: Request,response:Response, db: AsyncSession = Depends(get_db)):

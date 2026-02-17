@@ -38,7 +38,7 @@ async def get_user(identifier : str , db : AsyncSession):
     
     return user
 
-async def is_revoked(jti: str ,db : AsyncSession):
+async def is_revoked(jti: UUID ,db : AsyncSession):
 
     refresh_token = get_instance_by_any(model = RefreshToken , db = db , **{"token_id " :jti})
 
@@ -56,4 +56,5 @@ async def is_revoked(jti: str ,db : AsyncSession):
 async def insert_refresh_token(db : AsyncSession,jti : UUID):
     
     await insert_instance(model = RefreshToken , db=db , **{"token_id" :jti})
+    await commit_transaction(db=db)
     return True
