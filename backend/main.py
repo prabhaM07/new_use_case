@@ -1,12 +1,18 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from middleware.authorizationMiddleware import AuthorizationMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
+from middleware.loggingMiddleware import logging_middleware
 import routes.auth as auth
 from db import init_db
+from logging_config import setup_logging
+
+setup_logging()
 
 app = FastAPI()
 
 app.add_middleware(AuthorizationMiddleware)
+app.add_middleware(BaseHTTPMiddleware, dispatch = logging_middleware)
 
 app.add_middleware(
     CORSMiddleware,

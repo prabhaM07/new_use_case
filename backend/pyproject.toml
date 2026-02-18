@@ -4,4 +4,17 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "argon2-cffi>=25.1.0",
+    "fastapi>=0.129.0",
+    "jose>=1.0.0",
+    "logger>=1.4",
+    "passlib>=1.7.4",
+    "psycopg[binary]>=3.3.2",
+    "pydantic-settings>=2.13.0",
+    "pydantic[email]>=2.12.5",
+    "python-jose[cryptography]>=3.5.0",
+    "python-json-logger>=4.0.0",
+    "sqlalchemy>=2.0.46",
+    "uvicorn>=0.41.0",
+]
